@@ -1,0 +1,19 @@
+# Ignore compiled Python files
+*.pyc
+*.pyo
+__pycache__
+
+# Ignore local development settings
+/.env
+
+# Ignore virtual environment directories
+venv/
+env/
+ENV/
+
+# Ignore pipenv virtual environment files
+Pipfile.lock
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
