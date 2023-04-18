@@ -4,9 +4,10 @@ from functions.utils import clear_screen, get_current_time
 from enum import Enum, auto
 from classes.page import Page
 from typing import List
+from lab2.first_task import count_ocurrences_of_subtring_in_string
 
 
-class XMLController:
+class XmlParser:
     class MenuOptions(Enum):
         IDLE = auto()
         SEARCH = auto()
@@ -21,7 +22,7 @@ class XMLController:
 
     def __init__(self, xml_dir: str) -> None:
         self.load_xml(xml_dir)
-        self.current_menu_option = XMLController.MenuOptions.IDLE
+        self.current_menu_option = XmlParser.MenuOptions.IDLE
         self.query = ''
 
     def load_xml(self, xml_dir: str) -> None:
@@ -72,16 +73,16 @@ class XMLController:
     def search_loop(self) -> None:
         while True:
             self.render_idle()
-            if self.current_menu_option == XMLController.MenuOptions.SEARCH:
+            if self.current_menu_option == XmlParser.MenuOptions.SEARCH:
                 self.render_search()
-            elif self.current_menu_option == XMLController.MenuOptions.SEE_PREVIOUS_SEARCHES:
+            elif self.current_menu_option == XmlParser.MenuOptions.SEE_PREVIOUS_SEARCHES:
                 self.render_previous_searches()
-            elif self.current_menu_option == XMLController.MenuOptions.CLEAR_SCREEN:
+            elif self.current_menu_option == XmlParser.MenuOptions.CLEAR_SCREEN:
                 clear_screen()
-            elif self.current_menu_option == XMLController.MenuOptions.EXIT:
+            elif self.current_menu_option == XmlParser.MenuOptions.EXIT:
                 break
 
-    def search_for_term(self, term: str) -> list:
+    def search_for_term(self, term: str, tag = 'title', count_tag='text') -> list:
         # Se não houver root
         if not self.root:
             raise ValueError('self.root inválido ou não encontrado')
@@ -92,13 +93,39 @@ class XMLController:
         # Lista de resultados
         included = list()
         for elem in self.root:
+            countText = 0
+            countTitle = 0
+
+            weightText = 0
+            weightTitle = 0
+
+            count = 0
+            weight = 0
             if (elem.tag == 'page'):
                 for sub_elem in elem:
-                    page = Page(elem.find('id').text, elem.find(  # type: ignore
-                        'title').text, elem.find('text').text)  # type: ignore
-                    if sub_elem.tag == 'title' and term in sub_elem.text:  # type: ignore
+                    isOnTitle = sub_elem.tag == tag
+                    isOnText = sub_elem.tag == count_tag
+                    termInText = term in str(sub_elem.text)
+                    
+                    if isOnText:
+                        countText = count_ocurrences_of_subtring_in_string(str(sub_elem.text), term)
+                        weightText = 2 * countText if sub_elem.tag == count_tag else 1 * countText
+                    
+                    if isOnTitle:
+                        countTitle = count_ocurrences_of_subtring_in_string(str(sub_elem.text), term)
+                        weightTitle = 3 * countTitle if sub_elem.tag == tag else 1 * countTitle
+                    
+                    count = countText + countTitle
+                    weight = weightText + weightTitle
+
+                    page = Page(str(elem.find('id').text), str(elem.find(  
+                        'title').text), str(elem.find('text').text), count, int(weight))  
+                    
+                    if (isOnText or isOnTitle) and termInText: 
                         included.append(page)
-        return included
+        sortedItems = sorted(
+            included, key=lambda page: page.weight, reverse=True)
+        return sortedItems
 
     def render_idle(self) -> None:
         print("Tarefa 1 - XML Parser")
@@ -110,27 +137,27 @@ class XMLController:
         input_value = input()
 
         if input_value == '1':
-            self.current_menu_option = XMLController.MenuOptions.SEARCH
+            self.current_menu_option = XmlParser.MenuOptions.SEARCH
         elif input_value == '2':
-            self.current_menu_option = XMLController.MenuOptions.SEE_PREVIOUS_SEARCHES
+            self.current_menu_option = XmlParser.MenuOptions.SEE_PREVIOUS_SEARCHES
         elif input_value == '3':
-            self.current_menu_option = XMLController.MenuOptions.CLEAR_SCREEN
+            self.current_menu_option = XmlParser.MenuOptions.CLEAR_SCREEN
         elif input_value == '4':
-            self.current_menu_option = XMLController.MenuOptions.EXIT
+            self.current_menu_option = XmlParser.MenuOptions.EXIT
         else:
             print('Opção inválida')
-            self.current_menu_option = XMLController.MenuOptions.IDLE
+            self.current_menu_option = XmlParser.MenuOptions.IDLE
 
     def render_search(self) -> None:
         temp = input('Digite o termo que deseja pesquisar: ')
         if temp == 'sair':
-            self.current_menu_option = XMLController.MenuOptions.IDLE
+            self.current_menu_option = XmlParser.MenuOptions.IDLE
         elif temp == '':
             print('Termo inválido')
         else:
             # Pesquisa o termo
             self.query = temp
-            self.current_menu_option = XMLController.MenuOptions.SEARCH
+            self.current_menu_option = XmlParser.MenuOptions.SEARCH
 
             # Verifica se a pesquisa já foi realizada
             if self.query in self.memoized_searches:

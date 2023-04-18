@@ -6,26 +6,30 @@ class Page:
     id: str
     title: str
     text: str
+    count_of_term_in_text: int
+    weight: int
 
-    def __init__(self, id: str or None, title: str or None, text: str or None) -> None:
+    def __init__(self, id: str , title: str, text: str, count_of_term_in_text: int, weight: int) -> None:
         if id is None or title is None or text is None:
             raise ValueError(
                 'id, title e/ou text inválido(s) ou não encontrado(s)')
         self.id = id
         self.title = title
         self.text = text
+        self.count_of_term_in_text = count_of_term_in_text
+        self.weight = weight
 
     def __str__(self) -> str:
-        short_text = textwrap.fill(self.text, width=80)
-        colored_text = colored(short_text, 'green', attrs=['bold'])
-        # return f'-- ID: {self.id}\nTitle: {self.title}\nText: {colored_text}\n'
-        return f'ID: {self.id}\nTitle: {self.title} /\n '
+        colored_text = colored(self.title, 'green', attrs=['bold'])
+        peso_text = colored(str(self.weight), 'red', attrs=['bold'])
+        return f'ID: {self.id}\nTitulo: {colored_text}\nPeso: {peso_text}\nContador termo: {self.count_of_term_in_text}\n'
 
     def __dict__(self) -> dict:
         return {
             'id': self.id,
             'title': self.title,
-            'text': self.text
+            'text': self.text,
+            'count_of_term_in_text': self.count_of_term_in_text
         }
 
     def print_page_with_colored_given_term(self, term: str) -> None:
