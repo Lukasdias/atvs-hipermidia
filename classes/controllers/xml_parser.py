@@ -1,16 +1,14 @@
 from xml.etree.ElementTree import ElementTree, Element
 import xml.etree.ElementTree as xml
-from functions.utils import clear_screen, get_current_time
-from enum import Enum, auto
 from classes.models.page import Page
-from typing import List, Dict, Optional
+from typing import List, Dict, Literal
 
 
 class XmlParser:
-
     root: Element
     query: str
-    memoized_searches: Dict[str, Page] = {}
+    memoized_searches: Dict[int, List[Page]] = {}
+    memoized_reverse_searches: Dict[List[Page], int] = {}
 
     def __init__(self, xml_dir: str) -> None:
         self.load_xml(xml_dir)
@@ -59,6 +57,9 @@ class XmlParser:
         # Se não houver termo
         if not term:
             raise ValueError('termo inválido ou não encontrado')
+        
+        if hash(term) in self.memoized_searches:
+            return self.memoized_searches[hash(term)]
 
         # Lista de resultados
         included: List[Page] = []
@@ -81,10 +82,18 @@ class XmlParser:
                 included.append(temp_page)
         result = sorted(included, reverse=True)
 
-        self.memoized_searches[term] = result[0] if len(result) > 0 else None
+        self.memoize_search(term, result)
         
         return sorted(included, reverse=True)
 
 
     def get_memorized_searches(self) -> dict:
         return self.memoized_searches
+    
+    def memoize_search(self, term: str, pages: List[Page], method: Literal['reverse', 'default'] = 'default') -> None:
+        if method == 'default':
+            self.memoized_searches[hash(term)] = pages
+        else: 
+            self.memoized_reverse_searches[pages] = hash(term)
+        pass
+        

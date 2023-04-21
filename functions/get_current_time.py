@@ -1,11 +1,4 @@
-import os
 import time
-
-folder_path = './../'
-
-def clear_screen() -> None:
-    # Limpa a tela
-    os.system('cls' if os.name == 'nt' else 'clear')
 
 def get_current_time() -> str:
     # Retorna a data e hora atual

@@ -20,10 +20,11 @@ class Menu:
         self.xml_parser = xml_parser
 
     def print_menu(self):
-        print("\\ Verbetes Wikipedia //")
-        print("1. Opção 1 - Pesquisar")
-        print("2. Opção 2 - Limpar tela")
-        print("3. Opção 3 - Sair")
+        titulo = colored("<", "green", attrs=["blink"]) + " Verbetes Wikipedia " + colored("/>", "green", attrs=["blink"])
+        print(titulo)
+        print(f"{colored('1', 'blue')}. Opção 1 - Pesquisar")
+        print(f"{colored('2', 'yellow')}. Opção 2 - Limpar tela")
+        print(f"{colored('3', 'cyan')}. Opção 3 - Sair")
 
     def get_user_input(self):
         return input()
@@ -32,6 +33,8 @@ class Menu:
         if input_value == '1':
             self.current_menu_option = Menu.MenuOptions.SEARCH
         elif input_value == '2':
+            self.current_menu_option = Menu.MenuOptions.CLEAR_SCREEN
+        elif input_value == '3':
             self.current_menu_option = Menu.MenuOptions.EXIT
         else:
             print('Opção inválida')
@@ -43,8 +46,12 @@ class Menu:
             input_value = self.get_user_input()
             self.process_user_input(input_value)
             if self.current_menu_option == Menu.MenuOptions.SEARCH:
+                # renderizar a tela de pesquisa
                 self.render_search()
                 pass
+            elif self.current_menu_option == Menu.MenuOptions.CLEAR_SCREEN:
+                # limpar a tela
+                self.clean_screen()
             elif self.current_menu_option == Menu.MenuOptions.EXIT:
                 # sair do programa
                 break
@@ -60,6 +67,7 @@ class Menu:
 
     def render_search_results(self, pages: List[Page]):
         # renderizar os resultados da pesquisa
+        print(f'Foram encontrados {len(pages)} resultados para a pesquisa')
         print('Resultados da pesquisa:')
         for page in pages:
             print(page.__str__())
