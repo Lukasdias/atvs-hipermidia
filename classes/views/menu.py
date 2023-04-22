@@ -6,6 +6,7 @@ from classes.controllers.xml_parser import XmlParser
 
 import os
 
+
 class Menu:
     class MenuOptions(Enum):
         IDLE = 0
@@ -20,7 +21,8 @@ class Menu:
         self.xml_parser = xml_parser
 
     def print_menu(self):
-        titulo = colored("<", "green", attrs=["blink"]) + " Verbetes Wikipedia " + colored("/>", "green", attrs=["blink"])
+        titulo = colored("<", "green", attrs=[
+                         "blink"]) + " Verbetes Wikipedia " + colored("/>", "green", attrs=["blink"])
         print(titulo)
         print(f"{colored('1', 'blue')}. Opção 1 - Pesquisar")
         print(f"{colored('2', 'yellow')}. Opção 2 - Limpar tela")
@@ -64,10 +66,13 @@ class Menu:
         self.render_search_results(pages)
         pass
 
-
     def render_search_results(self, pages: List[Page]):
         # renderizar os resultados da pesquisa
-        print(f'Foram encontrados {len(pages)} resultados para a pesquisa')
+        if (len(pages) == 0):
+            print('Nenhum resultado encontrado')
+            return
+        print(
+            f'Foram encontrados resultados em {len(pages)} páginas diferentes')
         print('Resultados da pesquisa:')
         for page in pages:
             print(page.__str__())

@@ -38,27 +38,6 @@ class XmlParser:
         # Retorna uma lista de páginas
         return list(map(lambda page: Page(page.find('id').text, page.find('title').text, page.find('text').text, 0), pages))
 
-    def get_all_refs_of_given_tag_from_file(self, tag: str) -> list[str]:
-        # Se não houver page, retorne 0
-        if not self.root:
-            raise ValueError('xml_root inválido ou não encontrado')
-        if not tag:
-            raise ValueError('tag inválida ou não encontrada')
-
-        # Traz todas as páginas
-        pages = self.root.findall('page')
-
-        # Filtra as páginas que contém a tag
-        tags = filter(lambda page: page.find(tag) is not None, pages)
-
-        # Retorna uma lista com o texto da tag
-        mapped_tags = map(lambda page: page.find(tag).text, tags)
-
-        if mapped_tags is not None:
-            return list(mapped_tags)
-
-        return []
-
     def search_for_term(self, term: str, hash_method: Literal['reverse', 'default'] = 'default') -> list:
         # Se não houver root
         if not self.root:
