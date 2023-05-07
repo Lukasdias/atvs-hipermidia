@@ -1,39 +1,38 @@
 from xml.etree.ElementTree import ElementTree, Element
 import xml.etree.ElementTree as xml
 from classes.models.page import Page
-from typing import List, Dict, Literal
-import json
-import os
-
-
-def make_page(element: Element) -> Page:
-    # Se não houver elemento
-    if not element:
-        raise ValueError('elemento inválido ou não encontrado')
-
-    # Retorna uma página
-    return Page(
-        element.find('id').text,
-        element.find('title').text,
-        element.find('text').text, 0, 0)
+from typing import List, Dict, Literal, Set
+import time
 
 
 class XmlParser:
     root: Element
     pages: List[Page]
     query: str
-    memo: Dict[str, Dict[str, Page]]
+    memo: Dict[str, List[Page]]
 
     def __init__(self, xml_dir: str) -> None:
         self.load_xml(xml_dir)
         self.query = ''
         self.pages = []
 
+    def filter_page_content(self, page_content: List[str], withSet: bool) -> List[str]:
+        words_with_min_size = list(
+            filter(lambda word: len(word) >= 4, page_content))
+
+        if withSet:
+            result = list(set(
+                map(lambda word: word.lower(), words_with_min_size)))
+        else:
+            result = list(map(lambda word: word.lower(), words_with_min_size))
+        return result
+
     def load_xml(self, xml_dir: str) -> None:
         # Se não houver xml_dir, retorne 0
         if not xml_dir:
             raise ValueError('diretório do xml inválido ou não encontrado')
 
+        print(f'Parseando {xml_dir}...')
         # Carrega o xml
         tree = xml.parse(xml_dir)
 
@@ -42,45 +41,65 @@ class XmlParser:
         self.pages = self.get_all_pages()
         self.memo = dict()
 
-        self.fill_possible_words()
+        load_start = time.time()
+        print(f'Carregando {len(self.pages)} páginas...')
+        self.fill()
+        load_end = time.time()
 
-    def fill_possible_words(self):
+        running_time = load_end - load_start
+
+        format_time = round(
+            running_time * 1000 if running_time < 1 else running_time, 2)
+
+        format_sufix = 'ms' if running_time < 1 else 's'
+
+        print(f'Carregamento concluído em: {format_time}{format_sufix}!')
+
+    def fill(self):
         for page in self.pages:
-            # Palavras dentro do título = 2x relevância
-            words_inside_title_of_page = page.title.split()
+            # Divide o título e o texto em palavras NÃO repetidas
+            key_title_words = self.filter_page_content(
+                page.title.split(), True)
+            key_text_words = self.filter_page_content(page.text.split(), True)
 
-            # Palavras dentro do texto = 1x relevância
-            words_inside_text_of_page = page.text.split()
+            all_key_words = list(key_title_words + key_text_words)
 
-            # Todas as palavras presentes na página atual
-            all_words = words_inside_title_of_page + words_inside_text_of_page
+            # Divide o título e o texto em palavras repetidas
+            all_possible_title_words = self.filter_page_content(
+                page.title.split(), False)
+            all_possible_text_words = self.filter_page_content(
+                page.text.split(), False)
 
-            filtered_words = list(
-                filter(lambda word: len(word) >= 4, all_words))
+            for word in all_key_words:
+                # Conta quantas vezes a palavra aparece no título
+                count_on_title = all_possible_title_words.count(word)
 
-            filtered_and_mapped_words = list(map(lambda word: word.lower()[
-                :-1] if word.endswith('s') else word.lower(), filtered_words))
+                # Conta quantas vezes a palavra aparece no texto
+                count_on_body = all_possible_text_words.count(word)
 
-            # Para cada palavra na lista de palavras filtradas
-            for word in filtered_and_mapped_words:
-                # Conta quantas vezes a palavra aparece no título e no texto
-                count_on_title = page.title.count(word)
-                count_on_text = page.text.count(word)
-                count = count_on_title + count_on_text
-                # Se a palavra estiver no título, a relevância é dobrada
-                isOnTitle = count_on_title > 0
-                relevance = 2 * count if isOnTitle else count
-                # Cria uma nova página com a relevância e a quantidade de vezes que a palavra aparece
-                new_page = Page(page.id, page.title,
-                                page.text, relevance, count)
-                # Se a palavra já estiver no dicionário, adicione a página
-                if word in self.memo.keys():
-                    self.memo[word][page.id] = new_page
-                # Senão, crie uma nova chave e adicione a página
-                else:
-                    self.memo[word] = dict()
-                    self.memo[word][page.id] = new_page
+                # Se a palavra estiver no título, ou seja, relevância maior
+                onTitle = count_on_title > 0
 
+                # Se a palavra estiver no título, a relevância é maior(2x) se não for, a relevância continua a mesma
+                relevance = (count_on_title + count_on_body + page.relevance) * \
+                    2 if onTitle else count_on_title + count_on_body + page.relevance
+
+                # Relenvância normal
+                raw_relevance = count_on_title + count_on_body + page.raw_relevance
+
+                # Se a palavra não estiver no dicionário, adicione-a
+                if word not in self.memo.keys():
+                    self.memo[word] = []
+
+                # Se a palavra estiver no título ou no corpo
+                if count_on_title > 0 or count_on_body > 0:
+                    # Instancia uma nova página com a relevância calculada
+                    new_page = Page(page.id, page.title, page.text,
+                                    relevance, raw_relevance)
+                    # Adiciona a página no dicionário
+                    self.memo[word].append(new_page)
+
+    # Parseia o xml e retorna uma lista de páginas já instanciadas
     def get_all_pages(self) -> List[Page]:
         # Se não houver root
         if not self.root:
@@ -111,25 +130,16 @@ class XmlParser:
             raise ValueError('termo inválido ou não encontrado')
 
         # Lista de resultados
-        included: List[Page] = []
+        result: List[Page] = []
+
+        parse_term = term.lower()[:-1] if term.endswith('s') else term.lower()
 
         # Se o termo estiver no dicionário
         if term in self.memo.keys():
             # Adicione todos os valores do dicionário na lista de resultados
-            for value in self.memo[term].values():
-                included.append(value)
-
-        result = sorted(included)
-
-        # Percorre todas as páginas
-        # for page in self.pages:
-        #     count = page.text.lower().count(term.lower())
-        #     isOnTitle = page.title.lower().count(term.lower()) > 0
-        #     if count > 0:
-        # Multiplique a relevância por 2 se o termo estiver no título
-        #         temp_page = Page(page.id, page.title, page.text,
-        #                          count * 2 if isOnTitle else count, count)
-        #         included.append(temp_page)
-        # result = sorted(included)
-
+            if term.endswith('s'):
+                result = self.memo[parse_term] + self.memo[term]
+            else:
+                result = self.memo[term]
         return result
+        # return sorted(result, key=lambda page: page.relevance, reverse=True)

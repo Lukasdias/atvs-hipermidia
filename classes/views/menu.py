@@ -65,42 +65,25 @@ class Menu:
         if (len(termo) < 4):
             print('Termo possui menos de 4 caracteres, tente outro com +4 caracteres')
             return
-        termo_sem_radical = ''
 
-        if termo[len(termo) - 1] == 's':
-            termo_sem_radical = termo[:-1]
+        pages = self.xml_parser.search_for_term(termo)
 
-        if (termo_sem_radical != ''):
-            p_sem_radical = self.xml_parser.search_for_term(termo_sem_radical)
-            p_com_radical = self.xml_parser.search_for_term(termo)
-            pages = p_com_radical + p_sem_radical
-
-        else:
-            pages = self.xml_parser.search_for_term(termo)
-
-        self.render_search_results(pages)
+        self.render_search_results(pages, termo)
         pass
 
-    def render_search_results(self, pages: List[Page]):
+    def render_search_results(self, pages: List[Page], word: str):
         # renderizar os resultados da pesquisa
         if (len(pages) == 0):
             print('Nenhum resultado encontrado')
             return
-
-        # Número de páginas
-        # num_pages = len(self.xml_parser.memo.values())
-        # print(f"Total de páginas: {num_pages}")
 
         print(
             f'Foram encontrados resultados em {len(pages)} páginas diferentes')
 
         total = 0
         for page in pages:
-            total = page.raw_relevance + total
-        print(f'Qtd de citacoes pesquisa: {total}')
-
-        # for page in pages:
-        #     print(page.__str__())
+            total += page.raw_relevance
+        print(f'Qtd de citacoes do termo: {total}')
 
     def clean_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')

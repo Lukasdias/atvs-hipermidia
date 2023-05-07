@@ -29,6 +29,9 @@ class Page:
                            attrs=['bold', 'blink'])
         return f'ID: {self.id}\nTitulo: {self.title}\nRelevancia: {red_text}\n Texto: {self.text[:100]}...\n'
 
+    def __hash__(self) -> int:
+        return hash(self.id)
+
     def __dict__(self) -> dict:
         return {
             'id': self.id,
