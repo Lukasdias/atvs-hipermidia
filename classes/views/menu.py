@@ -66,12 +66,12 @@ class Menu:
             print('Termo possui menos de 4 caracteres, tente outro com +4 caracteres')
             return
 
-        pages = self.xml_parser.search_for_term(termo)
+        pages = self.xml_parser.search_for_term(termo.lower())
 
-        self.render_search_results(pages, termo)
+        self.render_search_results(pages)
         pass
 
-    def render_search_results(self, pages: List[Page], word: str):
+    def render_search_results(self, pages: List[Page]):
         # renderizar os resultados da pesquisa
         if (len(pages) == 0):
             print('Nenhum resultado encontrado')
@@ -84,6 +84,20 @@ class Menu:
         for page in pages:
             total += page.raw_relevance
         print(f'Qtd de citacoes do termo: {total}')
+        
+        total = 0
+
+        print("==================")
+        for page in pages:
+            total += page.raw_relevance
+            print(page.__str__())
+        print("==================")
+
+        print(
+            f'Foram encontrados resultados em {len(pages)} páginas diferentes')
+        
+        print(f'Qtd de citacoes do termo: {total}')
+
 
     def clean_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')

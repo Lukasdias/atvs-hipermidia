@@ -1,31 +1,33 @@
 from xml.etree.ElementTree import ElementTree, Element
 import xml.etree.ElementTree as xml
 from classes.models.page import Page
-from typing import List, Dict, Literal, Set
+from typing import List, Dict, Literal, Set, DefaultDict
 import time
+from collections import defaultdict
 
 
 class XmlParser:
     root: Element
     pages: List[Page]
     query: str
-    memo: Dict[str, List[Page]]
+    memo: DefaultDict[str, List[Page]]
 
     def __init__(self, xml_dir: str) -> None:
         self.load_xml(xml_dir)
         self.query = ''
         self.pages = []
 
-    def filter_page_content(self, page_content: List[str], withSet: bool) -> List[str]:
+    def filter_page_content(self, page_content: List[str], weight: int) -> DefaultDict[str, int]:
+        dict:DefaultDict[str, int]  = defaultdict()
         words_with_min_size = list(
             filter(lambda word: len(word) >= 4, page_content))
+        for word in words_with_min_size:
+            if word in dict.keys():
+                dict[word] += 1 * weight
+            else:
+                dict[word] = 0
+        return dict
 
-        if withSet:
-            result = list(set(
-                map(lambda word: word.lower(), words_with_min_size)))
-        else:
-            result = list(map(lambda word: word.lower(), words_with_min_size))
-        return result
 
     def load_xml(self, xml_dir: str) -> None:
         # Se não houver xml_dir, retorne 0
@@ -57,47 +59,25 @@ class XmlParser:
 
     def fill(self):
         for page in self.pages:
-            # Divide o título e o texto em palavras NÃO repetidas
-            key_title_words = self.filter_page_content(
-                page.title.split(), True)
-            key_text_words = self.filter_page_content(page.text.split(), True)
-
-            all_key_words = list(key_title_words + key_text_words)
-
-            # Divide o título e o texto em palavras repetidas
-            all_possible_title_words = self.filter_page_content(
-                page.title.split(), False)
-            all_possible_text_words = self.filter_page_content(
-                page.text.split(), False)
-
-            for word in all_key_words:
-                # Conta quantas vezes a palavra aparece no título
-                count_on_title = all_possible_title_words.count(word)
-
-                # Conta quantas vezes a palavra aparece no texto
-                count_on_body = all_possible_text_words.count(word)
-
-                # Se a palavra estiver no título, ou seja, relevância maior
-                onTitle = count_on_title > 0
-
-                # Se a palavra estiver no título, a relevância é maior(2x) se não for, a relevância continua a mesma
-                relevance = (count_on_title + count_on_body + page.relevance) * \
-                    2 if onTitle else count_on_title + count_on_body + page.relevance
-
-                # Relenvância normal
-                raw_relevance = count_on_title + count_on_body + page.raw_relevance
-
-                # Se a palavra não estiver no dicionário, adicione-a
-                if word not in self.memo.keys():
+            words = self.filter_page_content(page.text.split() + page.title.split(), 1)
+            for word in words:
+                if word in self.memo.keys():
+                    weight = 2 if page.title.count(word) > 0 else 1
+                    new_page = Page(page.id, page.title, page.text, words[word] * weight, words[word])
+                    self.memo[word].append(new_page)
+                else:
                     self.memo[word] = []
 
-                # Se a palavra estiver no título ou no corpo
-                if count_on_title > 0 or count_on_body > 0:
-                    # Instancia uma nova página com a relevância calculada
-                    new_page = Page(page.id, page.title, page.text,
-                                    relevance, raw_relevance)
-                    # Adiciona a página no dicionário
-                    self.memo[word].append(new_page)
+            # for word in words.keys():
+            #     if word not in self.memo.keys():
+            #         self.memo[word] = []
+            #     # Se a palavra estiver no título ou no corpo
+            #     if words[word] > 0:
+            #         # Instancia uma nova página com a relevância calculada
+            #         new_page = Page(page.id, page.title, page.text,
+            #                         words[word], words[word])
+            #         # Adiciona a página no dicionário
+            #         self.memo[word].append(new_page)
 
     # Parseia o xml e retorna uma lista de páginas já instanciadas
     def get_all_pages(self) -> List[Page]:
@@ -141,5 +121,5 @@ class XmlParser:
                 result = self.memo[parse_term] + self.memo[term]
             else:
                 result = self.memo[term]
-        return result
-        # return sorted(result, key=lambda page: page.relevance, reverse=True)
+        # return result
+        return sorted(result, key=lambda page: page.relevance, reverse=False)
