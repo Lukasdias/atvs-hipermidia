@@ -65,7 +65,7 @@ class Menu:
         if (len(termo) < 4):
             print('Termo possui menos de 4 caracteres, tente outro com +4 caracteres')
             return
-
+        
         pages = self.xml_parser.search_for_term(termo.lower())
 
         self.render_search_results(pages)

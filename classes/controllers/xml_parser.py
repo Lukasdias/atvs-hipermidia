@@ -30,6 +30,7 @@ class XmlParser:
         self.root = tree.getroot()
         # Carrega todas as páginas
         self.pages = self.get_all_pages()
+
         # Inicializa o dicionário
         self.memo = defaultdict(list)
 
@@ -38,6 +39,8 @@ class XmlParser:
         print(f'Carregando {len(self.pages)} páginas...')
 
         self.memoize_all_queries()
+
+        print(f"Total de palavras: {len(self.memo)}")
 
         # Finaliza o cronômetro
         load_end = time.time()
@@ -60,25 +63,33 @@ class XmlParser:
         # Se a palavra tiver mais de 4 caracteres, adicione-a ao dicionário
         words_list = list(
             filter(lambda word: len(word) >= 4, page_content))
+
         for word in words_list:
             # Se a palavra já estiver no dicionário, incremente-a, caso contrário, adicione-a
             # default dict vai incrementar automaticamente, pois o valor padrão é 0
-            words_dict[word] += 1
+            words_dict[word.lower()] += 1
         return words_dict
 
     # Cria um dicionário com todas as palavras e suas respectivas páginas
     def memoize_all_queries(self):
         for page in self.pages:
             # Pega todas as palavras da página, sem distinção entre título e texto
-            words = self.get_all_verbetes_words(
-                page.text.split() + page.title.split())
+
+            text_words = page.text.split() 
+            title_words = page.title.split()
+
+            all_words_from_page = text_words + title_words
+
+            words = self.get_all_verbetes_words(all_words_from_page)
             for word in words:
+             
                 # Se a palavra estiver no título, seu peso é 2, caso contrário, 1
                 weight = 2 if page.title.count(word) > 0 else 1
                 new_page = Page(page.id, page.title, page.text,
                                 words[word] * weight, words[word])
                 # Se a página não estiver no dicionário, adicione-a
                 self.memo[word].append(new_page)
+        
 
     # Parseia o xml e retorna uma lista de páginas já instanciadas
     def get_all_pages(self) -> List[Page]:
@@ -132,4 +143,6 @@ class XmlParser:
                 # Resultado de 'carro' = resultado de 'carro'
                 result = self.memo[term]
         # Ordena a lista de resultados por relevância de forma crescente
+        
         return sorted(result, key=lambda page: page.relevance, reverse=False)
+
